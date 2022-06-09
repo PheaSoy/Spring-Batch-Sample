@@ -3,6 +3,7 @@ package org.soyphea.springbatchkafka.batch;
 import lombok.extern.slf4j.Slf4j;
 import org.soyphea.springbatchkafka.entity.TxOrder;
 import org.soyphea.springbatchkafka.entity.TxOrderHistory;
+import org.soyphea.springbatchkafka.exception.BatchRetryableException;
 import org.soyphea.springbatchkafka.repository.TxOrderHistoryRepository;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ public class TxOrderProcessor implements ItemProcessor<TxOrder, TxOrderHistory> 
 
     @Transactional
     public TxOrderHistory execute(TxOrder txOrder) {
+        log.info("Txn order processor.");
+        if (txOrder.getName().equals("exception"))
+            throw new BatchRetryableException("Retry!");
         Optional<TxOrderHistory> byOrderId =
                 txOrderHistoryRepository.findByOrderId(txOrder.getId());
         if (byOrderId.isEmpty()) {

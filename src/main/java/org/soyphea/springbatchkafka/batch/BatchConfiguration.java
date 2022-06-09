@@ -6,6 +6,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.soyphea.springbatchkafka.constants.KafkaConstant;
 import org.soyphea.springbatchkafka.entity.TxOrder;
 import org.soyphea.springbatchkafka.entity.TxOrderHistory;
+import org.soyphea.springbatchkafka.exception.BatchRetryableException;
 import org.soyphea.springbatchkafka.repository.TxOrderRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -67,10 +68,13 @@ public class BatchConfiguration {
             throws Exception {
         return this.stepBuilderFactory
                 .get("step1")
-                .<TxOrder, TxOrderHistory>chunk(5)
+                .<TxOrder, TxOrderHistory>chunk(10)
                 .reader(dbReader())
                 .processor(processor())
                 .writer(kafkaItemWriter())
+                .faultTolerant()
+                .retryLimit(10)
+                .retry(BatchRetryableException.class)
                 .build();
     }
 
