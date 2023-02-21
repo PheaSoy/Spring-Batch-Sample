@@ -13,6 +13,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.data.RepositoryItemReader;
@@ -21,6 +22,8 @@ import org.springframework.batch.item.kafka.KafkaItemReader;
 import org.springframework.batch.item.kafka.KafkaItemWriter;
 import org.springframework.batch.item.kafka.builder.KafkaItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,6 +54,10 @@ public class BatchConfiguration {
     @Autowired
     private KafkaProperties properties;
 
+    @Autowired
+    @Qualifier("repositoryReader")
+    @Lazy
+    private ItemReader itemReader;
     // Creates an instance of TxOrderProcessor that converts one data form to another. In our case the data form is maintained.
     @Bean
     public TxOrderProcessor processor() {
@@ -69,7 +76,7 @@ public class BatchConfiguration {
         return this.stepBuilderFactory
                 .get("step1")
                 .<TxOrder, TxOrderHistory>chunk(10)
-                .reader(dbReader())
+                .reader(itemReader)
                 .processor(processor())
                 .writer(kafkaItemWriter())
                 .faultTolerant()
@@ -78,8 +85,10 @@ public class BatchConfiguration {
                 .build();
     }
 
-    @Bean
-    public RepositoryItemReader<TxOrder> dbReader() {
+    @Bean(name = "repositoryReader")
+    @StepScope
+    public RepositoryItemReader<TxOrder> dbReader(@Value("#{jobParameters}") Map<String,Object> jobParameters) {
+        jobParameters.entrySet().forEach(e-> System.out.println(e.getKey()+"|"+e.getValue()));
         RepositoryItemReader<TxOrder> reader = new RepositoryItemReader<>();
         reader.setSort(Map.of("id", Sort.Direction.DESC));
         reader.setRepository(txOrderRepository);

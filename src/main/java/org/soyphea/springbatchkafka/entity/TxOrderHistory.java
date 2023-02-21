@@ -1,10 +1,12 @@
 package org.soyphea.springbatchkafka.entity;
 
+import lombok.ToString;
+
 import javax.persistence.*;
 
 @Entity
 @Table(name = "tx_order_history")
-
+@ToString
 public class TxOrderHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
